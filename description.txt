@@ -1,1 +1,1 @@
-Multiplayer is a pretty cool mod, it does...this. Modify this file with a description of your mod.
+Simple mod that allows you to spectate same team players while you're dead.
