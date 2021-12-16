@@ -135,6 +135,7 @@ namespace MPSpectate
 
 		private void TestMethod()
 		{
+			//Main.player[Main.myPlayer].GetModPlayer<CameraMover>().changeTeam(1);
 		}
 
 		private void CheckCurrentlyTracking()

@@ -15,19 +15,27 @@ namespace MPSpectate.Camera
 		public static bool allowAliveSpectate = false; //  if True allows spectating while alive
 		public static bool disallowNoTeamSpectate = true; // if True, doesn't allow spectating while not in a team, team 0 (No team)
 
+		public void changeTeam(int newTeam) {
+			Main.player[Main.myPlayer].team = newTeam;
+			//player[myPlayer].team = newTeam;
+			NetMessage.SendData(45, -1, -1, null, Main.myPlayer);
+		}
+
 		public override void ModifyScreenPosition()
 		{
 			// Called Every Frame
 
-			if (Main.player[Main.myPlayer].dead && Main.player[Main.myPlayer].team != 0 || allowAliveSpectate) // Don't spectate if no team
+			if (Main.player[Main.myPlayer].dead || allowAliveSpectate) // Don't spectate if no team
 			{
 				//Verify that it is spectating a player
 				if (_spectatingPlayer == -1)
 				{
 					return;
 				}
+
 				//Check that player that was previously spectating is still ready for spectation
-				if (Main.player[_spectatingPlayer].dead || !Main.player[_spectatingPlayer].active || Main.player[_spectatingPlayer].team != Main.player[Main.myPlayer].team)
+				if (Main.player[_spectatingPlayer].dead || !Main.player[_spectatingPlayer].active || 
+					(Main.player[_spectatingPlayer].team != Main.player[Main.myPlayer].team && Main.player[Main.myPlayer].team != 0))
 				{
 					_spectatingPlayer = -1; // No longer spectating, retry
 					findNextTeamPlayerIndex();
@@ -90,12 +98,58 @@ namespace MPSpectate.Camera
 			coolpacket.Send();
 		}
 
+		public static bool IsBossActive()
+		{
+			// Returns True if a boss is active. Does not include mini-bosses. Does not include event-bossess.
+			foreach (NPC mob in Main.npc)
+			{
+				if (mob.active && mob.boss)
+				{
+					return true;
+				}
+			}
+			if (NPC.AnyNPCs(NPCID.EaterofWorldsBody) || NPC.AnyNPCs(NPCID.EaterofWorldsHead) || NPC.AnyNPCs(NPCID.EaterofWorldsTail))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
 		/// <summary>
 		/// Searches for next index of player within the same Team that is NOT DEAD, return -1 if can't find one (WRAPS AROUND)
 		/// Additionally, automatically sets it as spectating player.
 		/// </summary>
 		public void findNextTeamPlayerIndex(bool reversed = false){
-			if (Main.player[Main.myPlayer].team == 0 && disallowNoTeamSpectate) {
+			
+			if (Main.player[Main.myPlayer].team == 0 && IsBossActive()) {
+				// make an exception and find any player
+				int step = reversed ? -1 : 1;
+				for (int j = 0; j < 256; j += step)
+				{ // Look for another player
+					if (j == Main.myPlayer)
+					{
+						continue;
+					}
+
+					if (j == _spectatingPlayer) {
+						continue;
+					}
+
+					if (!Main.player[j].active || Main.player[j].dead)
+					{
+						continue;
+					}
+
+					_spectatingPlayer = j;
+					return;
+				}
+				_spectatingPlayer = -1;
+				return;
+			}
+
+			if (Main.player[Main.myPlayer].team == 0 && disallowNoTeamSpectate)
+			{
 				return; // don't spectate on team if disallowed.
 			}
 
